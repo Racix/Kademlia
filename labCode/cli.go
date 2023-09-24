@@ -8,40 +8,42 @@ import (
 )
 
 func (kademlia *Kademlia) Cli() {
-	//var i string
 	var line string
 	var err error
 	fmt.Println("Give input")
 	for {
 		fmt.Print("input>: ")
-		c := make(chan int)
-		go func() {
-			scanner := bufio.NewReader(os.Stdin)
-			line, err = scanner.ReadString('\n')
-			line = strings.TrimSuffix(line, "\n")
-			//fmt.Scan(&i)
-			if err != nil {
-				fmt.Print(err)
-			}
-			c <- 0
-		}()
 
-		<- c
+		scanner := bufio.NewReader(os.Stdin)
+		line, err = scanner.ReadString('\n')
+		line = strings.TrimSuffix(line, "\n")
+		if err != nil {
+			fmt.Print(err)
+		}
+
 		// trimmed := strings.TrimSpace(line)
 		get := strings.Split(line, " ")
 
 		switch get[0] {
 		case "put":
-			fmt.Println("make som put!")
-			kademlia.Store([]byte(strings.Join(get[1:], " ")))
+			if(len(get[1:]) > 1) {
+				fmt.Println("Make som put!")
+				kademlia.Store([]byte(strings.Join(get[1:], " ")))
+			} else {
+				fmt.Println("Put takes at LEAST ONE arg")
+			}
 		case "get":
-			fmt.Println("make som get!")
-			kademlia.LookupData(strings.Join(get[1:], " "))
+			if (len(get[1:]) == 1) {
+				fmt.Println("Make som get!")
+				kademlia.LookupData(get[1])
+			} else {
+				fmt.Println("Get takes ONE arg")
+			}
 		case "exit":
-			fmt.Println("make som exit!")
+			fmt.Println("Make som exit!")
 			os.Exit(0)
 		default:
-			fmt.Println("not an option!")
+			fmt.Println("Not an option!")
 		}
 	}
 
