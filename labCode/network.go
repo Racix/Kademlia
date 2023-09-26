@@ -1,6 +1,7 @@
 package d7024e
 
 import (
+	"encoding/json"
 	"log"
 	"net"
 )
@@ -10,8 +11,41 @@ type Network struct {
 	RoutingTable *RoutingTable
 }
 
+func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) {
+	udpAddr, err := net.ResolveUDPAddr("udp", contact.Address)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conn, err := net.DialUDP("udp", nil, udpAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	rpcDataJSON, err := MarshalRPCdata(rpcSend)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = conn.Write(rpcDataJSON)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func MarshalRPCdata(data *RPCdata) ([]byte, error) {
+	rpcDataJSON, err := json.Marshal(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return rpcDataJSON, err
+}
+
 func (network *Network) SendPingMessage(targetAddress string, rpc *RPCdata) {
-	// TODO
+	rpcSend := NewRPCdata("PING", *network.me.ID, rpc.SenderID, rpc.RpcID, "0", nil)
+	network.Talk(contact, &rpcSend)
 }
 
 func (network *Network) SendFindContactMessage(contact *Contact) {
@@ -26,15 +60,7 @@ func (network *Network) SendStoreMessage(data []byte) {
 	// TODO
 }
 
-func (network *Network) Talk(contact *Contact) {
-	conn, err := net.DialUDP("udp", *contact.Address)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-}
-
-func MarshalRPCdata() {
-
+func (network *Network) Pong(contact *Contact, rpc *RPCdata) {
+	rpcSend := NewRPCdata("PONG", *network.me.ID, rpc.SenderID, rpc.RpcID, "0", nil)
+	network.Talk(contact, &rpcSend)
 }
