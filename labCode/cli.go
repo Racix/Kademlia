@@ -26,7 +26,7 @@ func (kademlia *Kademlia) Cli() {
 
 		switch get[0] {
 		case "put":
-			if(len(get[1:]) > 1) {
+			if(len(get[1:]) > 0) {
 				fmt.Println("Make som put!")
 				kademlia.Store([]byte(strings.Join(get[1:], " ")))
 			} else {
