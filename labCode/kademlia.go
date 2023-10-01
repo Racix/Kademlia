@@ -9,7 +9,7 @@ type Kademlia struct {
 	k          int
 	alpha      int
 	candidates *ContactCandidates
-	responseChan chan []Contact // add it here for now
+	//responseChan chan []Contact
 }
 
 func NewKademlia(network *Network, k, alpha int) *Kademlia {
@@ -17,142 +17,110 @@ func NewKademlia(network *Network, k, alpha int) *Kademlia {
 		network:    network,
 		k:          k,
 		alpha:      alpha,
-		candidates: &ContactCandidates{},
+		//candidates: &ContactCandidates{},
 	}
 }
 
-func (kademlia *Kademlia) LookupContact(target *Contact) []Contact {
+func (kademlia *Kademlia) LookupContact(target *Contact) ([]Contact, error) {
+	candidates := &ContactCandidates{}
 
-	alphaContacts := make(map[string]bool)
-	kademlia.candidates.Append([]Contact{*target})
+	visited := make(map[string]bool)
 
-	processResponses := func() {
-		for {
-			select {
-			case newContacts := <-kademlia.responseChan:
-				kademlia.candidates.Append(newContacts)
-				kademlia.candidates.Sort()
+	candidates.Append([]Contact{*target})
 
-				kClosest := kademlia.candidates.GetContacts(kademlia.k)
-				fmt.Println("Updated candidates:", kClosest)
+	// Main lookup loop
+	for len(candidates.contacts) > 0 {
+		candidates.Sort()
+		closest := candidates.contacts[0]
+		candidates.contacts = candidates.contacts[1:]
+
+		if visited[closest.Address] {
+			continue
+		}
+
+		visited[closest.Address] = true
+
+		closestContacts := kademlia.network.RoutingTable.FindClosestContacts(closest.ID, kademlia.alpha)
+
+		candidates.Append(closestContacts)
+
+		responses := make(chan []Contact, kademlia.alpha)
+
+		for i := 0; i < kademlia.alpha; i++ {
+			if len(candidates.contacts) > 0 {
+				closestContact := candidates.contacts[0] 
+				candidates.contacts = candidates.contacts[1:]
+				go func(contact Contact) {
+					//newContacts := kademlia.network.SendFindContactMessage(&contact)
+					//responses <- newContacts
+				}(closestContact)
 			}
 		}
-	}
 
-	go processResponses()
-
-	// Main loop
-	for len(kademlia.candidates.contacts) > 0 {
-
-		kademlia.candidates.Sort()
-		closest := kademlia.candidates.contacts[0]
-		kademlia.candidates.contacts = kademlia.candidates.contacts[1:]
-		alphaContacts[closest.Address] = true
-
-		kademlia.network.SendPingMessage(&closest)
-
-		// Check if contact found
-		if closest.ID.Equals(target.ID) {
-			fmt.Printf("Lookup contact: %s\n", closest.String())
-			return []Contact{closest}
+		var newContacts []Contact
+		for i := 0; i < kademlia.alpha; i++ {
+			newContacts = append(newContacts, <-responses...)
 		}
 
-		kademlia.network.SendFindContactMessage(&closest)
-
-		closestContacts := kademlia.network.RoutingTable.FindClosestContacts(target.ID, kademlia.alpha)
-
-		for _, contact := range closestContacts {
-			if !alphaContacts[contact.Address] {
-				kademlia.candidates.Append([]Contact{contact})
-			}
-		}
+		candidates.Append(newContacts)
 	}
-	fmt.Println("Not found")
-	return nil
+
+	// Sort the candidates
+	candidates.Sort()
+
+	kClosestContacts := candidates.GetContacts(kademlia.k)
+
+	return kClosestContacts, nil
 }
 
-// func (kademlia *Kademlia) LookupContact(target *Contact) {
-// 	// Initialize a ContactCandidates object to store the closest contacts
-// 	candidates := &ContactCandidates{}
+// func (kademlia *Kademlia) LookupContact(target *Contact) []Contact {
 
-// 	// Initialize a set to keep track of visited nodes to avoid loops
-// 	visited := make(map[string]bool)
-
-// 	// Initialize a set to keep track of alpha contacts
 // 	alphaContacts := make(map[string]bool)
-
-// 	// Initialize a channel to collect responses from Goroutines
-// 	responseChan := make(chan []Contact)
-
-// 	// Add the initial contact to the candidates
-// 	candidates.Append([]Contact{*target})
+// 	kademlia.candidates.Append([]Contact{*target})
 
 // 	processResponses := func() {
-// 		var kClosestContacts []Contact
 // 		for {
 // 			select {
-// 			case newContacts := <-kademlia.network.responseChan:
-	
-// 				// Update the candidates based on the new contacts
+// 			case newContacts := <-kademlia.responseChan:
 // 				kademlia.candidates.Append(newContacts)
-	
 // 				kademlia.candidates.Sort()
-	
-// 				// Get the k closest contacts
-// 				kClosestContacts = kademlia.candidates.GetContacts(kademlia.k)
 
-// 				fmt.Println("Updated candidates:", kClosestContacts)
+// 				kClosest := kademlia.candidates.GetContacts(kademlia.k)
+// 				fmt.Println("Updated candidates:", kClosest)
 // 			}
 // 		}
-	
-// 		return kClosestContacts
 // 	}
 
 // 	go processResponses()
 
-// 	// Main lookup loop
-// 	for len(candidates.contacts) > 0 {
+// 	// Main loop
+// 	for len(kademlia.candidates.contacts) > 0 {
 
-// 		candidates.Sort()
-
-// 		closest := candidates.contacts[0]
-
-// 		candidates.contacts = candidates.contacts[1:]
-
-// 		if visited[closest.Address] {
-// 			continue
-// 		}
-
-// 		visited[closest.Address] = true
-
+// 		kademlia.candidates.Sort()
+// 		closest := kademlia.candidates.contacts[0]
+// 		kademlia.candidates.contacts = kademlia.candidates.contacts[1:]
 // 		alphaContacts[closest.Address] = true
 
 // 		kademlia.network.SendPingMessage(&closest)
 
+// 		// Check if contact found
 // 		if closest.ID.Equals(target.ID) {
-// 			fmt.Printf("Found target contact: %s\n", closest.String())
-// 			return
+// 			fmt.Printf("Lookup contact: %s\n", closest.String())
+// 			return []Contact{closest}
 // 		}
 
 // 		kademlia.network.SendFindContactMessage(&closest)
 
-// 		go func(contact Contact) {
-// 			newContacts := kademlia.network.GetContactsFromFindNode(&contact)
-
-// 			responseChan <- newContacts
-// 		}(closest)
-
-// 		closestContacts := kademlia.network.routingTable.FindClosestContacts(target.ID, kademlia.alpha)
+// 		closestContacts := kademlia.network.RoutingTable.FindClosestContacts(target.ID, kademlia.alpha)
 
 // 		for _, contact := range closestContacts {
 // 			if !alphaContacts[contact.Address] {
-// 				candidates.Append([]Contact{contact})
+// 				kademlia.candidates.Append([]Contact{contact})
 // 			}
 // 		}
-
 // 	}
-
-// 	fmt.Println("Target contact not found")
+// 	fmt.Println("Not found")
+// 	return nil
 // }
 
 func (kademlia *Kademlia) LookupData(hash string) {
