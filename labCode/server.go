@@ -9,25 +9,7 @@ import (
 	"net"
 	"strconv"
 )
-type StoreObject struct {
-	rpcID            string
-	data             string
-	dataLength       int
-	key              string
-	senderKademliaID string
-}
 
-func NewStoreObject(rpcID string, data string, key string, senderKademliaID string) *StoreObject {
-	storeObject := StoreObject{
-		rpcID:            rpcID,
-		data:             data,
-		dataLength:       len(data),
-		key:              key,
-		senderKademliaID: senderKademliaID,
-	}
-	return &storeObject
-}
-storeObjects: make([]StoreObject, 0),
 type Server struct {
 	kademlia *Kademlia
 }
