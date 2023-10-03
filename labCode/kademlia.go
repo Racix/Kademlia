@@ -4,20 +4,41 @@ import (
 	"fmt"
 )
 
+type StoreObject struct {
+	rpcID            string
+	data             string
+	dataLength       int
+	key              string
+	senderKademliaID string
+}
+
+func NewStoreObject(rpcID string, data string, key string, senderKademliaID string) *StoreObject {
+	storeObject := StoreObject{
+		rpcID:            rpcID,
+		data:             data,
+		dataLength:       len(data),
+		key:              key,
+		senderKademliaID: senderKademliaID,
+	}
+	return &storeObject
+}
+
 type Kademlia struct {
 	network    *Network
 	k          int
 	alpha      int
 	candidates *ContactCandidates
 	//responseChan chan []Contact
+	storeObjects []StoreObject
 }
 
 func NewKademlia(network *Network, k, alpha int) *Kademlia {
 	return &Kademlia{
-		network:    network,
-		k:          k,
-		alpha:      alpha,
+		network: network,
+		k:       k,
+		alpha:   alpha,
 		//candidates: &ContactCandidates{},
+		storeObjects: make([]StoreObject, 0),
 	}
 }
 
@@ -48,7 +69,7 @@ func (kademlia *Kademlia) LookupContact(target *Contact) ([]Contact, error) {
 
 		for i := 0; i < kademlia.alpha; i++ {
 			if len(candidates.contacts) > 0 {
-				closestContact := candidates.contacts[0] 
+				closestContact := candidates.contacts[0]
 				candidates.contacts = candidates.contacts[1:]
 				go func(contact Contact) {
 					//newContacts := kademlia.network.SendFindContactMessage(&contact)

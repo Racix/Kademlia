@@ -1,13 +1,33 @@
 package d7024e
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"strconv"
 )
+type StoreObject struct {
+	rpcID            string
+	data             string
+	dataLength       int
+	key              string
+	senderKademliaID string
+}
 
+func NewStoreObject(rpcID string, data string, key string, senderKademliaID string) *StoreObject {
+	storeObject := StoreObject{
+		rpcID:            rpcID,
+		data:             data,
+		dataLength:       len(data),
+		key:              key,
+		senderKademliaID: senderKademliaID,
+	}
+	return &storeObject
+}
+storeObjects: make([]StoreObject, 0),
 type Server struct {
 	kademlia *Kademlia
 }
@@ -20,8 +40,9 @@ func NewServer(kademlia *Kademlia) *Server {
 }
 
 func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP string) {
+
 	switch RPC.RPCtype {
-	case "IncPING":
+	case "PING":
 		//NOTE: distance for the new contact?
 		theContact := NewContact(&RPC.SenderID, senderIP)
 		theContact.Address = senderIP
@@ -29,24 +50,28 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP string) {
 		kademlia.network.RoutingTable.buckets[indexBucket].AddContact(theContact)
 
 		kademlia.network.Pong(&theContact, RPC)
-
-	case "OutPing":
-		kademlia.network.SendPingMessage(kademlia.network.me.Address, RPC)
-
-	case "IncSTORE":
-
-	case "OutSTORE":
-
+	case "PONG":
+		log.Println("PONG recieved")
 	case "FIND_VALUE":
-		//FIND_VALUE
+		hasher := sha1.New()
+		hasher.Write([]byte(RPC.Value))
+		theHash := hex.EncodeToString(hasher.Sum(nil))
+		for i := 0; i < len(kademlia.storeObjects); i++ {
+			if theHash == kademlia.storeObjects[i].key {
+				RPC.Value = kademlia.storeObjects[i].data
+			}
+		}
 
+	// LookUpContact uses FIND_NODE
 	case "FIND_NODE":
-		//FIND_NODE
-
+		closestContacts := kademlia.network.RoutingTable.FindClosestContacts(&RPC.TargetID, 3)
+		RPC.Contacts = closestContacts
+	case "STORE":
+		newStoreObject := kademlia.NewStoreObject()
+		kademlia.storeObjects = append(kademlia.storeObjects, newStoreObject)
 	default:
 		// defualt
 	}
-	return
 }
 
 func (kademlia *Kademlia) Listen(ip string, port int) {

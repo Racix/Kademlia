@@ -1,5 +1,11 @@
 package d7024e
 
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"log"
+)
+
 type RPCdata struct {
 	RPCtype  string     `json:"rpcType"`
 	SenderID KademliaID `json:"senderID"`
@@ -10,13 +16,29 @@ type RPCdata struct {
 	Contacts []Contact `json:"contacts"`
 }
 
-func NewRPCdata(rpcType string, senderID KademliaID, targetID KademliaID, rpcID string, value string, contacts []Contact) RPCdata {
-	return RPCdata{
+func NewRPCdata(rpcType string, senderID KademliaID, targetID KademliaID, rpcID string, value string) *RPCdata {
+	var genID string
+	if rpcID == "" {
+		genID = GenerateID()
+	} else {
+		genID = rpcID
+	}
+	return &RPCdata{
 		RPCtype:  rpcType,
 		SenderID: senderID,
 		TargetID: targetID,
-		RpcID:    rpcID,
+		RpcID:    genID, //here
 		Value:    value,
-		Contacts: contacts,
+		Contacts: make([]Contact, 0),
 	}
+}
+
+func GenerateID() string {
+	randomBytes := make([]byte, 20)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	randomID := hex.EncodeToString(randomBytes)
+	return randomID
 }
