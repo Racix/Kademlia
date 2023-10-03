@@ -3,22 +3,22 @@ package d7024e
 import (
 	"fmt"
 	"os"
+	"io"
 	"strings"
 	"bufio"
 )
 
-func (kademlia *Kademlia) Cli() {
+func (kademlia *Kademlia) Cli(stdin io.Reader) {
 	var line string
 	var err error
+	scanner := bufio.NewReader(stdin)
 	fmt.Println("Give input")
 	for {
 		fmt.Print("input>: ")
-
-		scanner := bufio.NewReader(os.Stdin)
 		line, err = scanner.ReadString('\n')
 		line = strings.TrimSuffix(line, "\n")
 		if err != nil {
-			fmt.Print(err)
+			fmt.Print("dead here: ",err)
 		}
 
 		// trimmed := strings.TrimSpace(line)
@@ -41,7 +41,7 @@ func (kademlia *Kademlia) Cli() {
 			}
 		case "exit":
 			fmt.Println("Make som exit!")
-			os.Exit(0)
+			os.Exit(1)
 		default:
 			fmt.Println("Not an option!")
 		}
