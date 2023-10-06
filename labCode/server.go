@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 )
 
 type Server struct {
@@ -21,17 +20,17 @@ func NewServer(kademlia *Kademlia) *Server {
 	return &server
 }
 
-func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP string) {
+func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *net.UDPConn) {
 
 	switch RPC.RPCtype {
 	case "PING":
 		//NOTE: distance for the new contact?
-		theContact := NewContact(&RPC.SenderID, senderIP)
-		theContact.Address = senderIP
-		indexBucket := kademlia.network.RoutingTable.getBucketIndex(&RPC.SenderID)
-		kademlia.network.RoutingTable.buckets[indexBucket].AddContact(theContact)
+		theContact := NewContact(&RPC.SenderID, senderIP.IP.String())
+		theContact.Address = senderIP.IP.String()
+		indexBucket := kademlia.Network.routingTable.getBucketIndex(&RPC.SenderID)
+		kademlia.Network.routingTable.buckets[indexBucket].AddContact(theContact)
 
-		kademlia.network.Pong(&theContact, RPC)
+		kademlia.Network.Pong(&theContact, RPC)
 	case "PONG":
 		log.Println("PONG recieved")
 	case "FIND_VALUE":
@@ -46,18 +45,26 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP string) {
 
 	// LookUpContact uses FIND_NODE
 	case "FIND_NODE":
-		closestContacts := kademlia.network.RoutingTable.FindClosestContacts(&RPC.TargetID, 3)
+		closestContacts := kademlia.Network.routingTable.FindClosestContacts(&RPC.TargetID, 3)
 		RPC.Contacts = closestContacts
+
+		rpcDataJSON, err := MarshalRPCdata(RPC)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 	case "STORE":
-		newStoreObject := kademlia.NewStoreObject()
-		kademlia.storeObjects = append(kademlia.storeObjects, newStoreObject)
+		//newStoreObject := kademlia.NewStoreObject()
+		//kademlia.storeObjects = append(kademlia.storeObjects, newStoreObject)
 	default:
 		// defualt
 	}
 }
 
-func (kademlia *Kademlia) Listen(ip string, port int) {
-	addr, err := net.ResolveUDPAddr("udp", ip+":"+strconv.Itoa(port))
+func (kademlia *Kademlia) Listen(ip string/*,completion chan struct{}*/) {
+	//defer close(completion)
+	addr, err := net.ResolveUDPAddr("udp", ip)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -70,7 +77,7 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 	buffer := make([]byte, 1024)
 	for {
 		n, senderAddr, err := conn.ReadFromUDP(buffer)
-		senderIP := senderAddr.IP.String()
+		//senderIP := senderAddr.IP.String()
 		if err != nil {
 			return
 		}
@@ -82,7 +89,7 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 			// for now
 			return
 		}
-		go kademlia.HandlerRPC(unMarshalledData, senderIP)
+		go kademlia.HandlerRPC(unMarshalledData, senderAddr, conn)
 	}
 
 }

@@ -24,7 +24,7 @@ func NewStoreObject(rpcID string, data string, key string, senderKademliaID stri
 }
 
 type Kademlia struct {
-	network    *Network
+	Network    *Network
 	k          int
 	alpha      int
 	candidates *ContactCandidates
@@ -34,10 +34,10 @@ type Kademlia struct {
 
 func NewKademlia(network *Network, k, alpha int) *Kademlia {
 	return &Kademlia{
-		network: network,
+		Network: network,
 		k:       k,
 		alpha:   alpha,
-		//candidates: &ContactCandidates{},
+		candidates: &ContactCandidates{},
 		storeObjects: make([]StoreObject, 0),
 	}
 }
@@ -61,7 +61,7 @@ func (kademlia *Kademlia) LookupContact(target *Contact) ([]Contact, error) {
 
 		visited[closest.Address] = true
 
-		closestContacts := kademlia.network.RoutingTable.FindClosestContacts(closest.ID, kademlia.alpha)
+		closestContacts := kademlia.Network.routingTable.FindClosestContacts(closest.ID, kademlia.alpha)
 
 		candidates.Append(closestContacts)
 
