@@ -42,6 +42,15 @@ func (kademlia *Kademlia) Cli(stdin io.Reader) {
 		case "exit":
 			fmt.Println("Make som exit!")
 			os.Exit(1)
+		case "send":
+			contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.me.ID, 20)
+			for i := range contacts {
+				fmt.Println(contacts[i].Address + " vs " + get[1])
+				if (contacts[i].Address == get[1]) {
+					fmt.Println(contacts[i].String())
+					kademlia.Network.SendFindContactMessage(&contacts[i])
+				}
+			}
 		default:
 			fmt.Println("Not an option!")
 		}
