@@ -14,7 +14,7 @@ FROM golang:latest
 # $ docker build . -t kadlab
 WORKDIR /app
 
-COPY node /app
+COPY main /app
 
 
-CMD ["./node"]
+#CMD ["./main"]
