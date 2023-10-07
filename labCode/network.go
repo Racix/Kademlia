@@ -14,13 +14,11 @@ const (
 )
 
 type Network struct {
-	me           Contact
 	routingTable RoutingTable
 }
 
-func NewNetwork(me Contact, routingTable RoutingTable) *Network {
+func NewNetwork(routingTable RoutingTable) *Network {
 	return &Network{
-		me: me,
 		routingTable: routingTable,
 	}
 }
@@ -34,7 +32,7 @@ func NetworkJoin(contact *Contact) Network {
 	me := NewContact(id, ip)
 	rt := NewRoutingTable(me)
 	rt.AddContact(*contact)
-	return *NewNetwork(me,*rt)
+	return *NewNetwork(*rt)
 
 }
 
@@ -65,7 +63,7 @@ func GetLocalIPAddress() (string, error) {
 	return "", fmt.Errorf("no suitable IP address found")
 }
 
-func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) {
+func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) []Contact{
 	udpAddr, err := net.ResolveUDPAddr("udp", contact.Address)
 	if err != nil {
 		log.Fatal(err)
@@ -103,8 +101,9 @@ func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("THE RESPONE FROM FIND_NODE: %v\n", repJSON)
+	fmt.Printf("THE RESPONE FROM FIND_NODE: %v\n", repJSON.Contacts)
 
+	return repJSON.Contacts
 
 }
 
@@ -117,33 +116,32 @@ func MarshalRPCdata(data *RPCdata) ([]byte, error) {
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
-	rpcSend := NewRPCdata("PING", *network.me.ID, *contact.ID, "", "This is a PING")
+	rpcSend := NewRPCdata("PING", *network.routingTable.me.ID, *contact.ID, "", "This is a PING")
 	network.Talk(contact, rpcSend)
 }
 
 // FIND_NODE
-func (network *Network) SendFindContactMessage(contact *Contact) {
-	rpcSend := NewRPCdata("FIND_NODE", *network.me.ID, *contact.ID, "", "This is a FIND_NODE")
-	network.Talk(contact, rpcSend)
-
-	//return &rpcSend.Contacts
+func (network *Network) SendFindContactMessage(contact *Contact/*, res chan []Contact*/) []Contact{
+	rpcSend := NewRPCdata("FIND_NODE", *network.routingTable.me.ID, *contact.ID, "", "This is a FIND_NODE")
+	//res <- network.Talk(contact, rpcSend)
+	return network.Talk(contact, rpcSend)
 }
 
 // FIND_VALUE
 func (network *Network) SendFindDataMessage(hash string) *string {
-	rpcSend := NewRPCdata("FIND_VALUE", *network.me.ID, *network.me.ID, "", hash)
-	network.Talk(&network.me, rpcSend)
+	rpcSend := NewRPCdata("FIND_VALUE", *network.routingTable.me.ID, *network.routingTable.me.ID, "", hash)
+	network.Talk(&network.routingTable.me, rpcSend)
 
 	return &rpcSend.Value
 }
 
 // STORE
 func (network *Network) SendStoreMessage(data string) {
-	rpcSend := NewRPCdata("STORE", *network.me.ID, *network.me.ID, "", data)
-	network.Talk(&network.me, rpcSend)
+	rpcSend := NewRPCdata("STORE", *network.routingTable.me.ID, *network.routingTable.me.ID, "", data)
+	network.Talk(&network.routingTable.me, rpcSend)
 }
 
 func (network *Network) Pong(contact *Contact, rpc *RPCdata) {
-	rpcSend := NewRPCdata("PONG", *network.me.ID, rpc.SenderID, rpc.RpcID, "0")
+	rpcSend := NewRPCdata("PONG", *network.routingTable.me.ID, rpc.SenderID, rpc.RpcID, "0")
 	network.Talk(contact, rpcSend)
 }

@@ -2,6 +2,8 @@ package d7024e
 
 import (
 	"fmt"
+	"strconv"
+	"sync"
 )
 
 type StoreObject struct {
@@ -42,18 +44,34 @@ func NewKademlia(network *Network, k, alpha int) *Kademlia {
 	}
 }
 
+type Candidates struct {
+	list	ContactCandidates
+	mu sync.Mutex
+	newContacts []Contact
+}
+
+// type Responses struct {
+// 	resChan	chan []Contact
+// 	mu sync.Mutex
+// }
+
 func (kademlia *Kademlia) LookupContact(target *Contact) ([]Contact, error) {
-	candidates := &ContactCandidates{}
+	candidates := Candidates{}
 
 	visited := make(map[string]bool)
 
-	candidates.Append([]Contact{*target})
+	candidates.mu.Lock()
+	candidates.list.Append([]Contact{*target})
+	candidates.mu.Unlock()
 
 	// Main lookup loop
-	for len(candidates.contacts) > 0 {
-		candidates.Sort()
-		closest := candidates.contacts[0]
-		candidates.contacts = candidates.contacts[1:]
+	for len(candidates.list.contacts) > 0 {
+		fmt.Println("SIZE" + strconv.Itoa(len(candidates.list.contacts)))
+		candidates.mu.Lock()
+		fmt.Println(candidates.list)
+		closest := candidates.list.contacts[0]
+		candidates.list.contacts = candidates.list.contacts[1:]
+		candidates.mu.Unlock()
 
 		if visited[closest.Address] {
 			continue
@@ -63,34 +81,66 @@ func (kademlia *Kademlia) LookupContact(target *Contact) ([]Contact, error) {
 
 		closestContacts := kademlia.Network.routingTable.FindClosestContacts(closest.ID, kademlia.alpha)
 
-		candidates.Append(closestContacts)
+		candidates.mu.Lock()
+		candidates.list.Append(closestContacts)
+		candidates.mu.Unlock()
 
 		responses := make(chan []Contact, kademlia.alpha)
 
 		for i := 0; i < kademlia.alpha; i++ {
-			if len(candidates.contacts) > 0 {
-				closestContact := candidates.contacts[0]
-				candidates.contacts = candidates.contacts[1:]
-				go func(contact Contact) {
-					//newContacts := kademlia.network.SendFindContactMessage(&contact)
+			if len(candidates.list.contacts) > 0 {
+				candidates.mu.Lock()
+				closestContact := candidates.list.contacts[0]
+				candidates.list.contacts = candidates.list.contacts[1:]
+				candidates.mu.Unlock()
+
+				//for _, c := range closestContact {
+				//go kademlia.Network.SendFindContactMessage(&closestContact, responses)
 					//responses <- newContacts
+				//}
+
+
+				go func(contact Contact) {
+					fmt.Println("THIS STEP 0")
+					newContacts := kademlia.Network.SendFindContactMessage(&contact)
+					responses <- newContacts
+					fmt.Println("THIS STEP 1")
 				}(closestContact)
+				fmt.Println("THIS STEP 5")
+			}
+			fmt.Println("THIS STEP 6")
+		}
+		// check the count!!!
+		for i := 0; i < kademlia.alpha; i++ {
+
+			select {
+			case resp := <-responses:
+				fmt.Println("THIS STEP -1")
+				candidates.mu.Lock()
+				candidates.newContacts = append(candidates.newContacts, resp...)
+				candidates.mu.Unlock()
+				fmt.Println("THIS STEP 2")
+			default:
+				// No more responses expected, exit the loop
+				break
 			}
 		}
-
-		var newContacts []Contact
-		for i := 0; i < kademlia.alpha; i++ {
-			newContacts = append(newContacts, <-responses...)
-		}
-
-		candidates.Append(newContacts)
+		fmt.Println("THIS STEP 3")
+		candidates.mu.Lock()
+		candidates.list.Append(candidates.newContacts)
+		candidates.list.Sort()
+		candidates.mu.Unlock()
+		fmt.Println("THIS STEP 4")
 	}
-
+	fmt.Println("THIS STEP 7")
 	// Sort the candidates
-	candidates.Sort()
-
-	kClosestContacts := candidates.GetContacts(kademlia.k)
-
+	candidates.mu.Lock()
+	candidates.list.Sort()
+	ck := 0
+	if len(candidates.list.contacts) < kademlia.k {ck = len(candidates.list.contacts)} else {ck = kademlia.k}
+	kClosestContacts := candidates.list.GetContacts(ck)
+	candidates.mu.Unlock()
+	fmt.Println("THIS STEP 8")
 	return kClosestContacts, nil
 }
 

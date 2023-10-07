@@ -45,7 +45,9 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 
 	// LookUpContact uses FIND_NODE
 	case "FIND_NODE":
-		closestContacts := kademlia.Network.routingTable.FindClosestContacts(&RPC.TargetID, 3)
+		theContact := NewContact(&RPC.SenderID, fmt.Sprintf("%s:8080", senderIP.IP.String()))
+		kademlia.Network.routingTable.AddContact(theContact)
+		closestContacts := kademlia.Network.routingTable.FindClosestContacts(&RPC.TargetID, kademlia.k)
 		RPC.Contacts = closestContacts
 
 		rpcDataJSON, err := MarshalRPCdata(RPC)
