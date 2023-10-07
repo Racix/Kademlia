@@ -43,12 +43,23 @@ func (kademlia *Kademlia) Cli(stdin io.Reader) {
 			fmt.Println("Make som exit!")
 			os.Exit(1)
 		case "send":
-			contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.me.ID, 20)
+			contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.routingTable.me.ID, 20)
 			for i := range contacts {
 				fmt.Println(contacts[i].Address + " vs " + get[1])
 				if (contacts[i].Address == get[1]) {
 					fmt.Println(contacts[i].String())
+					//kademlia.LookupContact(&contacts[i])
 					kademlia.Network.SendFindContactMessage(&contacts[i])
+				}
+			}
+		case "look":
+			contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.routingTable.me.ID, 20)
+			for i := range contacts {
+				fmt.Println(contacts[i].Address + " vs " + get[1])
+				if (contacts[i].Address == get[1]) {
+					fmt.Println(contacts[i].String())
+					fmt.Println(kademlia.LookupContact(&contacts[i]))
+					//kademlia.Network.SendFindContactMessage(&contacts[i])
 				}
 			}
 		default:
