@@ -2,10 +2,10 @@ package d7024e
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"time"
-	"fmt"
 )
 
 const (
@@ -63,7 +63,7 @@ func GetLocalIPAddress() (string, error) {
 	return "", fmt.Errorf("no suitable IP address found")
 }
 
-func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) []Contact{
+func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) RPCdata {
 	udpAddr, err := net.ResolveUDPAddr("udp", contact.Address)
 	if err != nil {
 		log.Fatal(err)
@@ -94,16 +94,16 @@ func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) []Contact{
 		log.Fatal(err)
 	}
 
-	repJSON, err := UnmarshalRPCdata(buffer[:n])
+	respRPC, err := UnmarshalRPCdata(buffer[:n])
 	if err != nil {
 		//fmt.Printf("Error unmarshaling response: %v\n", err)
 		//return
 		log.Fatal(err)
 	}
 
-	fmt.Printf("THE RESPONE FROM FIND_NODE: %v\n", repJSON.Contacts)
+	fmt.Printf("THE RESPONE FROM FIND_NODE: %v\n", respRPC.Contacts)
 
-	return repJSON.Contacts
+	return *respRPC
 
 }
 
@@ -121,27 +121,25 @@ func (network *Network) SendPingMessage(contact *Contact) {
 }
 
 // FIND_NODE
-func (network *Network) SendFindContactMessage(contact *Contact/*, res chan []Contact*/) []Contact{
+func (network *Network) SendFindContactMessage(contact *Contact /*, res chan []Contact*/) []Contact {
 	rpcSend := NewRPCdata("FIND_NODE", *network.routingTable.me.ID, *contact.ID, "", "This is a FIND_NODE")
 	//res <- network.Talk(contact, rpcSend)
-	return network.Talk(contact, rpcSend)
+	return network.Talk(contact, rpcSend).Contacts
 }
 
 // FIND_VALUE
-func (network *Network) SendFindDataMessage(hash string) *string {
-	rpcSend := NewRPCdata("FIND_VALUE", *network.routingTable.me.ID, *network.routingTable.me.ID, "", hash)
-	network.Talk(&network.routingTable.me, rpcSend)
-
-	return &rpcSend.Value
+func (network *Network) SendFindDataMessage(hash string, contact Contact) {
+	rpcSend := NewRPCdata("FIND_VALUE", *network.routingTable.me.ID, *contact.ID, "", hash)
+	network.Talk(contact.ID, rpcSend)
 }
 
 // STORE
-func (network *Network) SendStoreMessage(data string) {
-	rpcSend := NewRPCdata("STORE", *network.routingTable.me.ID, *network.routingTable.me.ID, "", data)
-	network.Talk(&network.routingTable.me, rpcSend)
+func (network *Network) SendStoreMessage(data string, contact *Contact) {
+	rpcSend := NewRPCdata("STORE", *network.routingTable.me.ID, *contact.ID, "", data)
+	network.Talk(contact.ID, rpcSend)
 }
 
-func (network *Network) Pong(contact *Contact, rpc *RPCdata) {
-	rpcSend := NewRPCdata("PONG", *network.routingTable.me.ID, rpc.SenderID, rpc.RpcID, "0")
-	network.Talk(contact, rpcSend)
-}
+//func (network *Network) Pong(contact *Contact, rpc *RPCdata) {
+//	rpcSend := NewRPCdata("PONG", *network.routingTable.me.ID, rpc.SenderID, rpc.RpcID, "0")
+//	network.Talk(contact, rpcSend)
+//}

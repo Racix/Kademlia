@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -30,9 +31,13 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 		indexBucket := kademlia.Network.routingTable.getBucketIndex(&RPC.SenderID)
 		kademlia.Network.routingTable.buckets[indexBucket].AddContact(theContact)
 
-		kademlia.Network.Pong(&theContact, RPC)
-	case "PONG":
-		log.Println("PONG recieved")
+		//PONG response
+		rpcDataJSON, err := MarshalRPCdata(RPC)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
+
 	case "FIND_VALUE":
 		hasher := sha1.New()
 		hasher.Write([]byte(RPC.Value))
@@ -42,6 +47,19 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 				RPC.Value = kademlia.storeObjects[i].data
 			}
 		}
+		// If value is present --> return. Otherwise --> FIND_NODE
+		if RPC.Value == "" {
+			theContact := NewContact(&RPC.SenderID, fmt.Sprintf("%s:8080", senderIP.IP.String()))
+			kademlia.Network.routingTable.AddContact(theContact)
+			closestContacts := kademlia.Network.routingTable.FindClosestContacts(&RPC.TargetID, kademlia.k)
+			RPC.Contacts = closestContacts
+		}
+		// Response
+		rpcDataJSON, err := MarshalRPCdata(RPC)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 
 	// LookUpContact uses FIND_NODE
 	case "FIND_NODE":
@@ -57,14 +75,24 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 
 		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 	case "STORE":
-		//newStoreObject := kademlia.NewStoreObject()
-		//kademlia.storeObjects = append(kademlia.storeObjects, newStoreObject)
+		newStoreObject := NewStoreObject(RPC.RpcID, RPC.Value, len(RPC.Value), NewKademliaID(RPC.Value), RPC.SenderID)
+		kademlia.storeObjects = append(kademlia.storeObjects, *newStoreObject)
 	default:
-		// defualt
+		fmt.Printf("Not a correct RPC type")
 	}
 }
 
-func (kademlia *Kademlia) Listen(ip string/*,completion chan struct{}*/) {
+// In i Kademlia
+func (kademlia *Kademlia) Store(data string) {
+	if len(data) > 255 {
+		return nil, errors.New("Value too big")
+	} else {
+		contacts := LookUpContact(NewKademliaID(data))
+		network.SendStoreMessage(data, contacts[0])
+	}
+}
+
+func (kademlia *Kademlia) Listen(ip string /*,completion chan struct{}*/) {
 	//defer close(completion)
 	addr, err := net.ResolveUDPAddr("udp", ip)
 	if err != nil {
