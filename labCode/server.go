@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -43,7 +42,7 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 		hasher.Write([]byte(RPC.Value))
 		theHash := hex.EncodeToString(hasher.Sum(nil))
 		for i := 0; i < len(kademlia.storeObjects); i++ {
-			if theHash == kademlia.storeObjects[i].key {
+			if NewKademliaID(theHash) == kademlia.storeObjects[i].key {
 				RPC.Value = kademlia.storeObjects[i].data
 			}
 		}
@@ -79,16 +78,6 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 		kademlia.storeObjects = append(kademlia.storeObjects, *newStoreObject)
 	default:
 		fmt.Printf("Not a correct RPC type")
-	}
-}
-
-// In i Kademlia
-func (kademlia *Kademlia) Store(data string) {
-	if len(data) > 255 {
-		return nil, errors.New("Value too big")
-	} else {
-		contacts := LookUpContact(NewKademliaID(data))
-		network.SendStoreMessage(data, contacts[0])
 	}
 }
 

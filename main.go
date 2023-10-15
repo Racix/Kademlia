@@ -9,7 +9,7 @@ import (
 
 const (
 	hostIp = "10.0.1.2:8080"
-	//hostIp = "localhost:8001"
+	//hostIp = "localhost:8080"
 )
 
 func main() {
@@ -19,13 +19,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//ip = "localhost:8001"
+	//ip = "localhost:8080"
 	me := d7024e.NewContact(id, hostIp)
 	if ip == hostIp {
 		rt := d7024e.NewRoutingTable(me)
-		/*rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111100000000000000000000000000000000"), "localhost:8001"))
-		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111100000000000000000000000000000000"), "localhost:8001"))
-		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111200000000000000000000000000000000"), "localhost:8001"))
+		/*rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111100000000000000000000000000000000"), "localhost:8080"))
+		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111300000000000000000000000000000000"), "localhost:8080"))
+		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111200000000000000000000000000000000"), "localhost:8080"))
 		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111300000000000000000000000000000000"), "localhost:8001"))
 		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("1111111400000000000000000000000000000000"), "localhost:8001"))
 		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("3111111400000000000000000000000000000000"), "localhost:8001"))*/

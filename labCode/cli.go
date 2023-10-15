@@ -28,7 +28,7 @@ func (kademlia *Kademlia) Cli(stdin io.Reader) {
 		case "put":
 			if(len(get[1:]) > 0) {
 				fmt.Println("Make som put!")
-				kademlia.Store([]byte(strings.Join(get[1:], " ")))
+				kademlia.Store(strings.Join(get[1:], " "))
 			} else {
 				fmt.Println("Put takes at LEAST ONE arg")
 			}
@@ -42,8 +42,12 @@ func (kademlia *Kademlia) Cli(stdin io.Reader) {
 		case "exit":
 			fmt.Println("Make som exit!")
 			os.Exit(1)
+		case "sendme":
+			contacts := kademlia.Network.routingTable.buckets
+			fmt.Println(contacts)
 		case "send":
 			contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.routingTable.me.ID, 20)
+			fmt.Println(contacts)
 			for i := range contacts {
 				fmt.Println(contacts[i].Address + " vs " + get[1])
 				if (contacts[i].Address == get[1]) {
@@ -53,15 +57,19 @@ func (kademlia *Kademlia) Cli(stdin io.Reader) {
 				}
 			}
 		case "look":
-			contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.routingTable.me.ID, 20)
-			for i := range contacts {
-				fmt.Println(contacts[i].Address + " vs " + get[1])
-				if (contacts[i].Address == get[1]) {
-					fmt.Println(contacts[i].String())
-					fmt.Println(kademlia.LookupContact(&contacts[i]))
-					//kademlia.Network.SendFindContactMessage(&contacts[i])
-				}
-			}
+			// contacts := kademlia.Network.routingTable.FindClosestContacts(kademlia.Network.routingTable.me.ID, 20)
+			// for i := range contacts {
+			// 	fmt.Println(contacts[i].Address + " vs " + get[1])
+			// 	if (contacts[i].Address == get[1]) {
+			// 		fmt.Println(contacts[i].String())
+			// 		v,_ :=kademlia.LookupContact2(&contacts[i])
+			// 		fmt.Printf("THE IS FINAL RESULT: %v\n",v )
+			// 		//kademlia.Network.SendFindContactMessage(&contacts[i])
+			// 	}
+			// }
+			c := NewContact(NewKademliaID(get[1]),get[2])
+			v,_ :=kademlia.LookupContact(c.ID)
+			fmt.Printf("THE IS FINAL RESULT: %v\n",v )
 		default:
 			fmt.Println("Not an option!")
 		}

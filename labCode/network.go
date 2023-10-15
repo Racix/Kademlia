@@ -123,20 +123,21 @@ func (network *Network) SendPingMessage(contact *Contact) {
 // FIND_NODE
 func (network *Network) SendFindContactMessage(contact *Contact /*, res chan []Contact*/) []Contact {
 	rpcSend := NewRPCdata("FIND_NODE", *network.routingTable.me.ID, *contact.ID, "", "This is a FIND_NODE")
-	//res <- network.Talk(contact, rpcSend)
-	return network.Talk(contact, rpcSend).Contacts
+	res := network.Talk(contact, rpcSend).Contacts
+	network.routingTable.AddContact(*contact)
+	return res
 }
 
 // FIND_VALUE
-func (network *Network) SendFindDataMessage(hash string, contact Contact) {
+func (network *Network) SendFindDataMessage(hash string, contact *Contact) {
 	rpcSend := NewRPCdata("FIND_VALUE", *network.routingTable.me.ID, *contact.ID, "", hash)
-	network.Talk(contact.ID, rpcSend)
+	network.Talk(contact, rpcSend)
 }
 
 // STORE
 func (network *Network) SendStoreMessage(data string, contact *Contact) {
 	rpcSend := NewRPCdata("STORE", *network.routingTable.me.ID, *contact.ID, "", data)
-	network.Talk(contact.ID, rpcSend)
+	network.Talk(contact, rpcSend)
 }
 
 //func (network *Network) Pong(contact *Contact, rpc *RPCdata) {
