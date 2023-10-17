@@ -30,6 +30,7 @@ func NetworkJoin(contact *Contact) Network {
 		log.Fatal(err)
 	}
 	me := NewContact(id, ip)
+	fmt.Println(id,ip)
 	rt := NewRoutingTable(me)
 	rt.AddContact(*contact)
 	return *NewNetwork(*rt)
