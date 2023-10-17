@@ -1,7 +1,7 @@
 package d7024e
 
 import (
-	"crypto/sha1"
+	//"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -38,12 +38,17 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 
 	case "FIND_VALUE":
-		hasher := sha1.New()
-		hasher.Write([]byte(RPC.Value))
-		theHash := hex.EncodeToString(hasher.Sum(nil))
+		fmt.Println("THIS IS THE RIGHT STOP")
+		//hasher := sha1.New()
+		//hasher.Write([]byte(RPC.Value))
+		//theHash := hex.EncodeToString(hasher.Sum(nil))
+		fmt.Println("THIS IS THE SIZE",len(kademlia.storeObjects),kademlia.storeObjects)
 		for i := 0; i < len(kademlia.storeObjects); i++ {
-			if NewKademliaID(theHash) == kademlia.storeObjects[i].key {
-				RPC.Value = kademlia.storeObjects[i].data
+			//fmt.Println("THIS IS THE KEY",NewKademliaID(RPC.Value),kademlia.storeObjects[i].key)
+			if RPC.Value == kademlia.storeObjects[i].key.String() {
+				decoded, _ := hex.DecodeString(kademlia.storeObjects[i].key.String())
+				RPC.Value = string(decoded)
+
 			}
 		}
 		// If value is present --> return. Otherwise --> FIND_NODE
@@ -76,6 +81,13 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 	case "STORE":
 		newStoreObject := NewStoreObject(RPC.RpcID, RPC.Value, len(RPC.Value), NewKademliaID(RPC.Value), RPC.SenderID)
 		kademlia.storeObjects = append(kademlia.storeObjects, *newStoreObject)
+		fmt.Println("THIS IS THE SIZE",len(kademlia.storeObjects),kademlia.storeObjects)
+
+		rpcDataJSON, err := MarshalRPCdata(RPC)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 	default:
 		fmt.Printf("Not a correct RPC type")
 	}

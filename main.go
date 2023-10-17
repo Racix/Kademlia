@@ -44,6 +44,7 @@ func main() {
 	//go kad.Listen(ip/*,completion*/)
 	//kad.Network.SendFindContactMessage(&me)	
 
+	go kad.StartServer()
 	kad.Cli(os.Stdin)
 
 	//<-completion

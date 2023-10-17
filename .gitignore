@@ -2,3 +2,4 @@
 go.mod
 docker/main.exe
 labCode/c.out
+labCode/coverage.html

@@ -60,6 +60,11 @@ func (kademlia *Kademlia) Cli(stdin io.Reader) {
 			c := NewKademliaID(get[1])//NewContact(NewKademliaID(get[1]),get[2])
 			v,_ :=kademlia.LookupContact(c)
 			fmt.Printf("THE IS FINAL RESULT: %v\n",v )
+		case "data":
+			c := NewContact(NewKademliaID(get[1]),get[2])
+			data := kademlia.Network.SendFindDataMessage(get[3], &c)
+			fmt.Printf("THE IS FINAL RESULT: %v\n",data )
+
 		default:
 			fmt.Println("Not an option!")
 		}

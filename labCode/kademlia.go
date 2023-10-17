@@ -1,6 +1,8 @@
 package d7024e
 
 import (
+	//"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	//"strconv"
 	"sync"
@@ -144,7 +146,8 @@ func (kademlia *Kademlia) LookupContact(target *KademliaID) ([]Contact, error) {
 // 	// TODO
 // 	fmt.Println(hash)
 // }
-func (kademlia *Kademlia) LookupData(hash string) {
+func (kademlia *Kademlia) LookupData(hash string) string{
+	var data string
     if len(hash) != 40 {
         fmt.Println("Too long/short hash")
     } else {
@@ -152,8 +155,11 @@ func (kademlia *Kademlia) LookupData(hash string) {
 		if err != nil {
 			fmt.Print("dead here: ",err)
 		}
-        kademlia.Network.SendFindDataMessage(hash, &contacts[0])
+		fmt.Println("WTF IS HERE")
+        data = kademlia.Network.SendFindDataMessage(hash, &contacts[0])
     }
+	fmt.Println("IS IT POSSIBLE")
+	return data
 }
 
 // func (kademlia *Kademlia) Store(data []byte) {
@@ -162,18 +168,24 @@ func (kademlia *Kademlia) LookupData(hash string) {
 // }
 
 // In i Kademlia
-func (kademlia *Kademlia) Store(data string) {
+func (kademlia *Kademlia) Store(data string) KademliaID{
+	var id KademliaID
 	if len(data) > 255 {
-		//errors.New("Value too big")
-		fmt.Print("Value too big")
-		return
+		//err = errors.New("Value too big")
+		fmt.Println("Value too big")
 	} else {
-		contacts, err := kademlia.LookupContact(NewKademliaID(data))
+		hashValue := hex.EncodeToString([]byte(data)[0:IDLength])
+		//hashValue := hex.EncodeToString(sha1.New().Sum([]byte(data))[0:IDLength])
+		id := NewKademliaID(hashValue)
+		contacts, err := kademlia.LookupContact(id)
 		if err != nil {
 			fmt.Print("dead here: ",err)
 		}
+		fmt.Print("GET THE CONTACTS: ",contacts)
 		for _, contact := range(contacts) {
-			kademlia.Network.SendStoreMessage(data, &contact)
+			fmt.Print("THIS IS THE CONTACT: ",contact)
+			go kademlia.Network.SendStoreMessage(hashValue, contact)
 		}
 	}
+	return id
 }

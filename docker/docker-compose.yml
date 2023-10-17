@@ -23,6 +23,7 @@ services:
         window: 10s
     ports:
       - "8080:8080"
+      - "8081:8081"
     networks:
       kademlia_network:
         ipv4_address: 10.0.1.2
@@ -35,7 +36,7 @@ services:
     tty: true
     deploy:
       mode: replicated
-      replicas: 4  
+      replicas: 49  
 #        resources:
 #           limits:
 #              cpus: "0.1"
@@ -46,7 +47,7 @@ services:
         max_attempts: 3
         window: 10s
 #    ports:
-#      - "8080:8080"
+#      - "8090-8095:8081"
     networks:
       - kademlia_network
     depends_on:
