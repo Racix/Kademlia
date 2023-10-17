@@ -1,2 +1,4 @@
 # igored files
 go.mod
+docker/main.exe
+labCode/c.out
