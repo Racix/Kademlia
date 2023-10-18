@@ -6,15 +6,17 @@ import (
 	"log"
 	"net"
 	"time"
+	"sync"
 )
 
 const (
-	waitTimeout   = 5 * time.Second
-	receiveBuffer = 1024
+	waitTimeout   = 50 * time.Millisecond //5 * time.Second
+	receiveBuffer = 10240
 )
 
 type Network struct {
 	routingTable RoutingTable
+	mu sync.Mutex
 }
 
 func NewNetwork(routingTable RoutingTable) *Network {
@@ -90,14 +92,15 @@ func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) RPCdata {
 	conn.SetReadDeadline(time.Now().Add(waitTimeout))
 	n, err := conn.Read(buffer)
 	if err != nil {
-		//fmt.Printf("Error reading response: %v\n", err)
+		fmt.Printf("Error reading response: %v\n", err)
 		//return
 		log.Fatal(err)
 	}
 
 	respRPC, err := UnmarshalRPCdata(buffer[:n])
 	if err != nil {
-		//fmt.Printf("Error unmarshaling response: %v\n", err)
+		fmt.Println(string(buffer[:n]))
+		fmt.Printf("Error unmarshaling response: %v\n", err)
 		//return
 		log.Fatal(err)
 	}
@@ -125,7 +128,9 @@ func (network *Network) SendPingMessage(contact *Contact) {
 func (network *Network) SendFindContactMessage(contact *Contact /*, res chan []Contact*/) []Contact {
 	rpcSend := NewRPCdata("FIND_NODE", *network.routingTable.me.ID, *contact.ID, "", "This is a FIND_NODE")
 	res := network.Talk(contact, rpcSend).Contacts
+	network.mu.Lock()
 	network.routingTable.AddContact(*contact)
+	network.mu.Unlock()
 	return res
 }
 

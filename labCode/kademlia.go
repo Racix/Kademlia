@@ -176,16 +176,17 @@ func (kademlia *Kademlia) Store(data string) KademliaID{
 	} else {
 		hashValue := hex.EncodeToString([]byte(data)[0:IDLength])
 		//hashValue := hex.EncodeToString(sha1.New().Sum([]byte(data))[0:IDLength])
-		id := NewKademliaID(hashValue)
-		contacts, err := kademlia.LookupContact(id)
+		id = *NewKademliaID(hashValue)
+		contacts, err := kademlia.LookupContact(&id)
 		if err != nil {
 			fmt.Print("dead here: ",err)
 		}
-		fmt.Print("GET THE CONTACTS: ",contacts)
-		for _, contact := range(contacts) {
-			fmt.Print("THIS IS THE CONTACT: ",contact)
-			go kademlia.Network.SendStoreMessage(hashValue, contact)
-		}
+		go func() {
+			for _, contact := range(contacts) {
+				go kademlia.Network.SendStoreMessage(hashValue, contact)
+			}
+		}()
+
 	}
 	return id
 }
