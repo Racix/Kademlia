@@ -46,15 +46,15 @@ services:
         delay: 5s
         max_attempts: 3
         window: 10s
-#    ports:
-#      - "8090-8095:8081"
+    ports:
+#      - "4000-4003:8081"
+      - "4000-4048:8081"
     networks:
       - kademlia_network
     depends_on:
       - kademliaMainNode
 
-      
-      
+
 networks:
   kademlia_network:
     driver: bridge
@@ -63,8 +63,4 @@ networks:
       config:
         - subnet: 10.0.1.0/24
 
-#    ipam:
-#      driver: default
-#      config:
-#        - subnet: 10.0.1.0/24
 
