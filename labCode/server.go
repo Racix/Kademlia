@@ -24,11 +24,10 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 
 	switch RPC.RPCtype {
 	case "PING":
-		//NOTE: distance for the new contact?
 		theContact := NewContact(&RPC.SenderID, senderIP.IP.String())
 		theContact.Address = senderIP.IP.String()
-		indexBucket := kademlia.Network.routingTable.getBucketIndex(&RPC.SenderID)
-		kademlia.Network.routingTable.buckets[indexBucket].AddContact(theContact)
+		kademlia.Network.routingTable.me.CalcDistance(theContact.ID)
+		kademlia.Network.routingTable.AddContact(theContact)
 
 		//PONG response
 		rpcDataJSON, err := MarshalRPCdata(RPC)
@@ -38,20 +37,14 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 
 	case "FIND_VALUE":
-		fmt.Println("THIS IS THE RIGHT STOP")
-		//hasher := sha1.New()
-		//hasher.Write([]byte(RPC.Value))
-		//theHash := hex.EncodeToString(hasher.Sum(nil))
-		fmt.Println("THIS IS THE SIZE",len(kademlia.storeObjects),kademlia.storeObjects)
+		// If value is present --> return. Otherwise --> FIND_NODE
 		for i := 0; i < len(kademlia.storeObjects); i++ {
-			//fmt.Println("THIS IS THE KEY",NewKademliaID(RPC.Value),kademlia.storeObjects[i].key)
 			if RPC.Value == kademlia.storeObjects[i].key.String() {
 				decoded, _ := hex.DecodeString(kademlia.storeObjects[i].key.String())
 				RPC.Value = string(decoded)
 
 			}
 		}
-		// If value is present --> return. Otherwise --> FIND_NODE
 		if RPC.Value == "" {
 			theContact := NewContact(&RPC.SenderID, fmt.Sprintf("%s:8080", senderIP.IP.String()))
 			kademlia.Network.routingTable.AddContact(theContact)
@@ -86,7 +79,7 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 	case "STORE":
 		newStoreObject := NewStoreObject(RPC.RpcID, RPC.Value, len(RPC.Value), NewKademliaID(RPC.Value), RPC.SenderID)
 		kademlia.storeObjects = append(kademlia.storeObjects, *newStoreObject)
-		fmt.Println("THIS IS THE SIZE",len(kademlia.storeObjects),kademlia.storeObjects)
+		fmt.Println("THIS IS THE SIZE", len(kademlia.storeObjects), kademlia.storeObjects)
 
 		rpcDataJSON, err := MarshalRPCdata(RPC)
 		if err != nil {
@@ -98,8 +91,7 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 	}
 }
 
-func (kademlia *Kademlia) Listen(ip string /*,completion chan struct{}*/) {
-	//defer close(completion)
+func (kademlia *Kademlia) Listen(ip string) {
 	addr, err := net.ResolveUDPAddr("udp", ip)
 	if err != nil {
 		log.Fatal(err)
@@ -113,21 +105,17 @@ func (kademlia *Kademlia) Listen(ip string /*,completion chan struct{}*/) {
 	buffer := make([]byte, 1024)
 	for {
 		n, senderAddr, err := conn.ReadFromUDP(buffer)
-		//senderIP := senderAddr.IP.String()
 		if err != nil {
-			return
+			log.Fatal(err)
 		}
 		data := buffer[:n]
 		fmt.Printf("Received data from %s: %s\n", addr, data)
-
 		unMarshalledData, err := UnmarshalRPCdata(data)
 		if err != nil {
-			// for now
-			return
+			log.Fatal(err)
 		}
 		go kademlia.HandlerRPC(unMarshalledData, senderAddr, conn)
 	}
-
 }
 
 func UnmarshalRPCdata(data []byte) (*RPCdata, error) {
