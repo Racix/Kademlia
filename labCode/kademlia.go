@@ -1,10 +1,10 @@
 package d7024e
 
 import (
-	//"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	//"strconv"
+	"log"
+	"net"
 	"sync"
 	//"errors"
 )
@@ -33,7 +33,6 @@ type Kademlia struct {
 	k          int
 	alpha      int
 	candidates *ContactCandidates
-	//responseChan chan []Contact
 	storeObjects []StoreObject
 }
 
@@ -59,18 +58,51 @@ type Candidates struct {
 	closest Contact
 }
 
-// type Responses struct {
-// 	resChan	chan []Contact
-// 	mu sync.Mutex
-// }
 
-func visit(v map[string]bool, c []Contact) bool{
-	for _,contact := range c {
-		if !v[contact.Address] {
-			return true
+func NetworkJoin(contact *Contact) Kademlia {
+	id := NewRandomKademliaID()
+	ip, err := GetLocalIPAddress()
+	if err != nil {
+		log.Fatal(err)
+	}
+	me := NewContact(id, ip)
+	fmt.Println(id,ip)
+	rt := NewRoutingTable(me)
+	rt.AddContact(*contact)
+	net :=*NewNetwork(*rt)
+
+	kad := NewKademlia(&net,20,3)
+	go kad.Listen(ip)
+	kad.StartLookUp()
+	return *kad
+
+}
+
+func GetLocalIPAddress() (string, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+				return fmt.Sprintf("%s:8080", ipnet.IP.String()), nil
+			}
 		}
 	}
-	return false
+
+	return "", fmt.Errorf("no suitable IP address found")
 }
 
 func (kademlia *Kademlia) LookupContact(target *KademliaID) ([]Contact, error) {

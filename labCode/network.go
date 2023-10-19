@@ -25,46 +25,6 @@ func NewNetwork(routingTable RoutingTable) *Network {
 	}
 }
 
-func NetworkJoin(contact *Contact) Network {
-	id := NewRandomKademliaID()
-	ip, err := GetLocalIPAddress()
-	if err != nil {
-		log.Fatal(err)
-	}
-	me := NewContact(id, ip)
-	fmt.Println(id,ip)
-	rt := NewRoutingTable(me)
-	rt.AddContact(*contact)
-	return *NewNetwork(*rt)
-
-}
-
-func GetLocalIPAddress() (string, error) {
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-
-	for _, iface := range interfaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-
-		for _, addr := range addrs {
-			ipnet, ok := addr.(*net.IPNet)
-			if ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
-				return fmt.Sprintf("%s:8080", ipnet.IP.String()), nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("no suitable IP address found")
-}
 
 func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) RPCdata {
 	udpAddr, err := net.ResolveUDPAddr("udp", contact.Address)
