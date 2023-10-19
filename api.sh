@@ -2,13 +2,23 @@
 
 put() {
     echo "Post To Docker"
-    curl -X POST -d "$*" http://localhost:8081/put/string --output -
+    port="$1"
+    shift
+    curl -X POST -d "$*" http://localhost:$port/put/string --output -
 
 }
 
 get() {
     echo "Get From Docker"
-    curl http://localhost:8081/get?hash=$@ --output -
+    port="$1"
+    shift
+    curl http://localhost:$port/get?hash=$@ --output -
+
+}
+
+whoami() {
+    echo "Get From Docker"
+    curl http://localhost:$1/whoami?=$2 --output -
 
 }
 
@@ -20,6 +30,10 @@ case "$1" in
     "get")
         shift
         get "$@"
+        ;;
+    "whoami")
+        shift
+        whoami "$@"
         ;;
     *)
         exit 1
