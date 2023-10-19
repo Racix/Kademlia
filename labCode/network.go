@@ -6,15 +6,17 @@ import (
 	"log"
 	"net"
 	"time"
+	"sync"
 )
 
 const (
-	waitTimeout   = 5 * time.Second
-	receiveBuffer = 1024
+	waitTimeout   = 50 * time.Millisecond //5 * time.Second
+	receiveBuffer = 10240
 )
 
 type Network struct {
 	routingTable RoutingTable
+	mu sync.Mutex
 }
 
 func NewNetwork(routingTable RoutingTable) *Network {
@@ -23,46 +25,6 @@ func NewNetwork(routingTable RoutingTable) *Network {
 	}
 }
 
-func NetworkJoin(contact *Contact) Network {
-	id := NewRandomKademliaID()
-	ip, err := GetLocalIPAddress()
-	if err != nil {
-		log.Fatal(err)
-	}
-	me := NewContact(id, ip)
-	fmt.Println(id,ip)
-	rt := NewRoutingTable(me)
-	rt.AddContact(*contact)
-	return *NewNetwork(*rt)
-
-}
-
-func GetLocalIPAddress() (string, error) {
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-
-	for _, iface := range interfaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-
-		for _, addr := range addrs {
-			ipnet, ok := addr.(*net.IPNet)
-			if ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
-				return fmt.Sprintf("%s:8080", ipnet.IP.String()), nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("no suitable IP address found")
-}
 
 func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) RPCdata {
 	udpAddr, err := net.ResolveUDPAddr("udp", contact.Address)
@@ -90,14 +52,15 @@ func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) RPCdata {
 	conn.SetReadDeadline(time.Now().Add(waitTimeout))
 	n, err := conn.Read(buffer)
 	if err != nil {
-		//fmt.Printf("Error reading response: %v\n", err)
+		fmt.Printf("Error reading response: %v\n", err)
 		//return
 		log.Fatal(err)
 	}
 
 	respRPC, err := UnmarshalRPCdata(buffer[:n])
 	if err != nil {
-		//fmt.Printf("Error unmarshaling response: %v\n", err)
+		fmt.Println(string(buffer[:n]))
+		fmt.Printf("Error unmarshaling response: %v\n", err)
 		//return
 		log.Fatal(err)
 	}
@@ -125,7 +88,9 @@ func (network *Network) SendPingMessage(contact *Contact) {
 func (network *Network) SendFindContactMessage(contact *Contact /*, res chan []Contact*/) []Contact {
 	rpcSend := NewRPCdata("FIND_NODE", *network.routingTable.me.ID, *contact.ID, "", "This is a FIND_NODE")
 	res := network.Talk(contact, rpcSend).Contacts
+	network.mu.Lock()
 	network.routingTable.AddContact(*contact)
+	network.mu.Unlock()
 	return res
 }
 

@@ -32,20 +32,15 @@ func main() {
 		rt.AddContact(d7024e.NewContact(d7024e.NewKademliaID("3111111400000000000000000000000000000000"), "localhost:8001"))*/
 		net = *d7024e.NewNetwork(*rt)
 		kad = *d7024e.NewKademlia(&net,20,3)
-		go kad.Listen(ip/*,completion*/)
+		go kad.Listen(ip)
 	} else {
-		net = d7024e.NetworkJoin(&me)
-		kad = *d7024e.NewKademlia(&net,20,3)
-		go kad.Listen(ip/*,completion*/)
-		kad.StartLookUp()
+		kad = d7024e.NetworkJoin(&me)
 	}
 
-	//completion := make(chan struct{})
-	//go kad.Listen(ip/*,completion*/)
+	//go kad.Listen(ip)
 	//kad.Network.SendFindContactMessage(&me)	
 
 	go kad.StartServer()
 	kad.Cli(os.Stdin)
 
-	//<-completion
 }

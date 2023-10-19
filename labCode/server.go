@@ -61,14 +61,19 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 	// LookUpContact uses FIND_NODE
 	case "FIND_NODE":
 		theContact := NewContact(&RPC.SenderID, fmt.Sprintf("%s:8080", senderIP.IP.String()))
+		kademlia.Network.mu.Lock()
 		kademlia.Network.routingTable.AddContact(theContact)
 		closestContacts := kademlia.Network.routingTable.FindClosestContacts(&RPC.TargetID, kademlia.k)
+		kademlia.Network.mu.Unlock()
 		RPC.Contacts = closestContacts
 
+		fmt.Println("WHAT IS CORUPTED",RPC)
 		rpcDataJSON, err := MarshalRPCdata(RPC)
 		if err != nil {
+			fmt.Println("THIS IS THE PROBLEM")
 			log.Fatal(err)
 		}
+		fmt.Println("JSON Data to Send:", string(rpcDataJSON))
 
 		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 	case "STORE":

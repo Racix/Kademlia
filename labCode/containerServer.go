@@ -61,5 +61,8 @@ func (kademlia *Kademlia) PutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash := kademlia.Store(string(body))
-	fmt.Printf("This is hash: %v\n", hash)
+	//fmt.Printf("This is hash: %v\n", hash)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("This is hash: %s\n", hash.String())))
 }
