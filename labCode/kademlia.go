@@ -187,10 +187,8 @@ func (kademlia *Kademlia) LookupData(hash string) string{
 		if err != nil {
 			fmt.Print("dead here: ",err)
 		}
-		fmt.Println("WTF IS HERE")
         data = kademlia.Network.SendFindDataMessage(hash, &contacts[0])
     }
-	fmt.Println("IS IT POSSIBLE")
 	return data
 }
 
