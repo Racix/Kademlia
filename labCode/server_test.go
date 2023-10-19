@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -66,6 +68,36 @@ func TestServer(t *testing.T) {
 	}
 	if rpcData1.RPCtype != "hej" || rpcData1.SenderID != *SenderID || rpcData1.TargetID != *SenderID {
 		t.Error("Wrong data")
+	}
+
+	//ContainerServer
+	req, err := http.NewRequest("GET", "/whoami", nil)
+	if err != nil {
+		t.Error()
+	}
+	_, err = http.NewRequest("Test", "/whoami", nil)
+	if err != nil {
+		t.Error()
+	}
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(kademlia.MeHandler).ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+
+	_, err = http.NewRequest("GET", "/get", nil)
+	if err != nil {
+		t.Error()
+	}
+
+	req1, err := http.NewRequest("GET", "/get?hash=asd", nil)
+	if err != nil {
+		t.Error()
+	}
+	rr1 := httptest.NewRecorder()
+	http.HandlerFunc(kademlia.GetHandler).ServeHTTP(rr1, req1)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
 	}
 
 }
