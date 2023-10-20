@@ -7,7 +7,6 @@ import (
 	"os"
 )
 
-
 func (kademlia *Kademlia) StartServer() {
 	http.HandleFunc("/get", kademlia.GetHandler)
 	http.HandleFunc("/whoami", kademlia.MeHandler)
@@ -30,10 +29,9 @@ func (kademlia *Kademlia) MeHandler(w http.ResponseWriter, r *http.Request) {
 	data := kademlia.Network.routingTable.me
 
 	if exit == "exit" {
-		defer os.Exit(1)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf("Shout down: %s, %s\n", data.ID.String(), data.Address)))
-		return
+		os.Exit(1)
 	}
 
 	w.WriteHeader(http.StatusOK)

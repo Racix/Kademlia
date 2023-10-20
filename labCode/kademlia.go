@@ -122,7 +122,9 @@ func (kademlia *Kademlia) LookupContact(target *KademliaID) ([]Contact, error) {
 	for candidates.closestContacts.Len() < kademlia.k {
 		if candidates.closestContacts.Len() > 0 {
 			if candidates.closestContacts.contacts[0].Less(&candidates.closest) {
+				candidates.mu.Lock()
 				candidates.closest = candidates.closestContacts.contacts[0]
+				candidates.mu.Unlock()
 
 			} else if candidates.list.Len() < 1 {
 				break
@@ -187,7 +189,12 @@ func (kademlia *Kademlia) LookupData(hash string) string{
 		if err != nil {
 			fmt.Print("dead here: ",err)
 		}
-        data = kademlia.Network.SendFindDataMessage(hash, &contacts[0])
+		for _, contact := range(contacts){
+			if kademlia.Network.SendPingMessage(&contact){
+				data = kademlia.Network.SendFindDataMessage(hash, &contact)
+				break
+			}
+		}
     }
 	return data
 }

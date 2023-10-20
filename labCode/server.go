@@ -24,11 +24,14 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 
 	switch RPC.RPCtype {
 	case "PING":
+		if RPC.Value == kademlia.Network.routingTable.me.ID.String() {
+			RPC.RPCtype = "PONG"
+		}
 		theContact := NewContact(&RPC.SenderID, senderIP.IP.String())
 		theContact.Address = senderIP.IP.String()
 		kademlia.Network.routingTable.me.CalcDistance(theContact.ID)
 		kademlia.Network.routingTable.AddContact(theContact)
-
+		
 		//PONG response
 		rpcDataJSON, err := MarshalRPCdata(RPC)
 		if err != nil {
@@ -67,19 +70,19 @@ func (kademlia *Kademlia) HandlerRPC(RPC *RPCdata, senderIP *net.UDPAddr, conn *
 		kademlia.Network.mu.Unlock()
 		RPC.Contacts = closestContacts
 
-		fmt.Println("WHAT IS CORUPTED",RPC)
+		//fmt.Println("WHAT IS CORUPTED",RPC)
 		rpcDataJSON, err := MarshalRPCdata(RPC)
 		if err != nil {
-			fmt.Println("THIS IS THE PROBLEM")
+			//fmt.Println("THIS IS THE PROBLEM")
 			log.Fatal(err)
 		}
-		fmt.Println("JSON Data to Send:", string(rpcDataJSON))
+		//fmt.Println("JSON Data to Send:", string(rpcDataJSON))
 
 		_, _ = conn.WriteToUDP(rpcDataJSON, senderIP)
 	case "STORE":
 		newStoreObject := NewStoreObject(RPC.RpcID, RPC.Value, len(RPC.Value), NewKademliaID(RPC.Value), RPC.SenderID)
 		kademlia.storeObjects = append(kademlia.storeObjects, *newStoreObject)
-		fmt.Println("THIS IS THE SIZE", len(kademlia.storeObjects), kademlia.storeObjects)
+		//fmt.Println("THIS IS THE SIZE", len(kademlia.storeObjects), kademlia.storeObjects)
 
 		rpcDataJSON, err := MarshalRPCdata(RPC)
 		if err != nil {

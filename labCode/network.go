@@ -47,23 +47,27 @@ func (network *Network) Talk(contact *Contact, rpcSend *RPCdata) RPCdata {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	var respRPC *RPCdata
 	buffer := make([]byte, receiveBuffer)
 	conn.SetReadDeadline(time.Now().Add(waitTimeout))
 	n, err := conn.Read(buffer)
-	if err != nil {
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		//fmt.Println("Timeout error:", err)
+		respRPC = NewRPCdata("", *network.routingTable.me.ID, *contact.ID, "", "")
+	} else if err != nil {
 		fmt.Printf("Error reading response: %v\n", err)
 		//return
 		log.Fatal(err)
+	} else {
+		respRPC, err = UnmarshalRPCdata(buffer[:n])
+		if err != nil {
+			fmt.Println(string(buffer[:n]))
+			fmt.Printf("Error unmarshaling response: %v\n", err)
+			//return
+			log.Fatal(err)
+		}
 	}
 
-	respRPC, err := UnmarshalRPCdata(buffer[:n])
-	if err != nil {
-		fmt.Println(string(buffer[:n]))
-		fmt.Printf("Error unmarshaling response: %v\n", err)
-		//return
-		log.Fatal(err)
-	}
 
 	fmt.Printf("THE RESPONE FROM FIND_NODE: %v\n", respRPC.Contacts)
 
@@ -79,9 +83,12 @@ func MarshalRPCdata(data *RPCdata) ([]byte, error) {
 	return rpcDataJSON, err
 }
 
-func (network *Network) SendPingMessage(contact *Contact) {
-	rpcSend := NewRPCdata("PING", *network.routingTable.me.ID, *contact.ID, "", "This is a PING")
-	network.Talk(contact, rpcSend)
+func (network *Network) SendPingMessage(contact *Contact) bool {
+	rpcSend := NewRPCdata("PING", *network.routingTable.me.ID, *contact.ID, "", contact.ID.String())
+	if network.Talk(contact, rpcSend).RPCtype == "PONG" {
+		return true
+	}
+	return false
 }
 
 // FIND_NODE

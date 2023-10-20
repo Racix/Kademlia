@@ -17,10 +17,7 @@ services:
       mode: replicated
       replicas: 1
       restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 10s
+        condition: none
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -42,10 +39,7 @@ services:
 #              cpus: "0.1"
 #              memory: 50M
       restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 10s
+        condition: none
     ports:
 #      - "4000-4003:8081"
       - "4000-4048:8081"
